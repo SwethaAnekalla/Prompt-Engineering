@@ -1,0 +1,21 @@
+Analyze the following meeting transcript segment and extract all risks, blockers, or issues raised.
+
+Transcript Segment:
+---
+{transcript_chunk}
+---
+
+You must output a JSON object adhering to this schema:
+{{
+  "risks": [
+    {{
+      "risk": "A clear description of the identified risk, issue, or blocker",
+      "severity": "low, medium, or high (inferred from discussion details or potential impact)",
+      "mitigation": "Any proposed solution, mitigation strategy, or next step discussed to address this risk. Use 'None discussed' if none",
+      "raised_by": "Name of the speaker who raised the concern. Use 'Unknown' if not clear",
+      "context": "Context or quote showing the discussion surrounding this risk"
+    }}
+  ]
+}}
+
+CRITICAL: Output ONLY the raw JSON object. Do not include markdown formatting or extra text.

@@ -1,0 +1,20 @@
+Analyze the following meeting transcript segment and extract all key decisions made.
+A decision is a conclusion, resolution, or agreement reached by the participants.
+
+Transcript Segment:
+---
+{transcript_chunk}
+---
+
+You must output a JSON object adhering to this schema:
+{{
+  "decisions": [
+    {{
+      "decision": "A concise and clear description of the decision/agreement reached",
+      "made_by": "The speaker(s) who proposed or finalized the decision, or 'Group' if agreed by all",
+      "context": "Context or justification for this decision from the transcript"
+    }}
+  ]
+}}
+
+CRITICAL: Output ONLY the raw JSON object. Do not include markdown formatting or extra text.

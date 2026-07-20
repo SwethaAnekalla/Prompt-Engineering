@@ -1,0 +1,22 @@
+Analyze the following meeting transcript segment and extract all action items.
+An action item is an explicit task assigned to one or more individuals or a group.
+
+Transcript Segment:
+---
+{transcript_chunk}
+---
+
+You must output a JSON object adhering to this schema:
+{{
+  "action_items": [
+    {{
+      "task": "A concise, specific description of the task to be performed",
+      "owner": "Name of the person or team responsible for the task. Use null if not specified",
+      "deadline": "The specific deadline or date mentioned for this task. Use null if no deadline is specified",
+      "priority": "High, Medium, or Low (inferred from discussion intensity or urgency)",
+      "context": "A short excerpt or context from the transcript illustrating why or when this task was assigned"
+    }}
+  ]
+}}
+
+CRITICAL: Output ONLY the raw JSON object. Do not include markdown formatting or extra text.

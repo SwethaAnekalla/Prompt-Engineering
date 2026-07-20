@@ -1,0 +1,22 @@
+Analyze the following meeting transcript segment and generate a structured summary.
+
+Transcript Segment:
+---
+{transcript_chunk}
+---
+
+You must output a JSON object adhering to this schema:
+{{
+  "title": "A short, descriptive title of the topic(s) discussed in this segment",
+  "overall_summary": "A detailed paragraph summarizing the main themes, discussions, and outcomes",
+  "summary_points": [
+    "Key discussion point 1",
+    "Key discussion point 2"
+  ],
+  "key_takeaways": [
+    "Crucial takeaway or decision 1",
+    "Crucial takeaway or decision 2"
+  ]
+}}
+
+CRITICAL: Output ONLY the raw JSON object. Do not include markdown formatting or extra text.

@@ -1,0 +1,25 @@
+Analyze the following meeting transcript segment and extract all deadlines, target dates, or timeline milestones.
+
+Reference Meeting Date: {meeting_date_context}
+
+Instructions for Date Normalization:
+- If a reference meeting date is provided above, please try to normalize relative dates (such as "next Friday", "end of this month", "by tomorrow") to a specific ISO-8601 date format (YYYY-MM-DD).
+- If the reference meeting date is "Unknown", or if a relative date cannot be normalized confidently, leave "normalized_date" as null. Do not guess.
+
+Transcript Segment:
+---
+{transcript_chunk}
+---
+
+You must output a JSON object adhering to this schema:
+{{
+  "deadlines": [
+    {{
+      "deadline_text": "The raw date or timeline text as spoken in the transcript (e.g. 'next Monday', 'July 20th', 'end of Q3')",
+      "normalized_date": "The normalized date in YYYY-MM-DD format, or null if unknown or unable to normalize",
+      "related_task": "The specific task, project, or deliverable associated with this deadline. Use null if no task is associated"
+    }}
+  ]
+}}
+
+CRITICAL: Output ONLY the raw JSON object. Do not include markdown formatting or extra text.

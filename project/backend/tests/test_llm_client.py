@@ -2,7 +2,7 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 import httpx
-from backend.llm_client import call_llm
+from llm_client import call_llm
 
 @pytest.fixture
 def mock_env_api_key():

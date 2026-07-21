@@ -1,8 +1,9 @@
 import json
 import os
+import re
 import logging
 from typing import List, Dict, Any
-from backend.llm_client import call_llm
+from llm_client import call_llm
 
 logger = logging.getLogger("action_extractor")
 
@@ -20,42 +21,72 @@ def read_prompt_template(filename: str) -> str:
         logger.error(f"Failed to read prompt template {filename}: {str(e)}")
         raise RuntimeError(f"Failed to read prompt template: {filename}") from e
 
+
+def _extract_json_block(text: str) -> str:
+    """
+    Cleans up common LLM JSON formatting issues:
+    - Strips markdown code fences (```json ... ```)
+    - Extracts the outermost {...} block if there's stray text around it
+    """
+    text = text.strip()
+
+    # Strip markdown code fences if present
+    fence_match = re.match(r"^```(?:json)?\s*(.*?)\s*```$", text, re.DOTALL)
+    if fence_match:
+        text = fence_match.group(1).strip()
+
+    # If there's still stray text before/after the JSON object, extract the outermost braces
+    first_brace = text.find("{")
+    last_brace = text.rfind("}")
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        text = text[first_brace:last_brace + 1]
+
+    return text
+
+
 def call_extractor_llm(prompt: str, system_prompt: str, key_name: str) -> List[Dict[str, Any]]:
     """
     Calls the LLM, validates that the output is valid JSON containing the expected list under key_name.
     If parsing or format verification fails, retries once with stricter instructions.
     """
     response_text = call_llm(prompt, system=system_prompt)
+    cleaned_text = _extract_json_block(response_text)
+
     try:
-        data = json.loads(response_text)
+        data = json.loads(cleaned_text)
         if isinstance(data, dict) and key_name in data and isinstance(data[key_name], list):
             return data[key_name]
         raise ValueError(f"Expected dictionary with key '{key_name}' containing a list")
     except Exception as e:
-        logger.warning(f"Initial extraction for '{key_name}' failed: {str(e)}. Retrying once...")
+        logger.warning(f"Initial extraction for '{key_name}' failed: {str(e)}. Raw response: {response_text!r}")
+        logger.warning(f"Retrying once...")
 
         strict_prompt = (
             f"{prompt}\n\n"
             f"CRITICAL WARNING: Your previous response was invalid. "
             f"You MUST return only a valid, raw JSON object matching the requested schema. "
             f"It must contain a key '{key_name}' whose value is a JSON list. "
-            f"Do NOT wrap in markdown code blocks or write any explanation."
+            f"Do NOT wrap in markdown code blocks or write any explanation. "
+            f"Ensure all strings are properly escaped and there are no trailing commas."
         )
 
         retry_response_text = call_llm(strict_prompt, system=system_prompt)
+        cleaned_retry_text = _extract_json_block(retry_response_text)
+
         try:
-            data = json.loads(retry_response_text)
+            data = json.loads(cleaned_retry_text)
             if isinstance(data, dict) and key_name in data and isinstance(data[key_name], list):
                 return data[key_name]
             raise ValueError(f"Expected dictionary with key '{key_name}' containing a list on retry")
         except Exception as retry_error:
-            logger.error(f"Extraction for '{key_name}' failed on retry: {str(retry_error)}")
+            logger.error(f"Extraction for '{key_name}' failed on retry: {str(retry_error)}. Raw retry response: {retry_response_text!r}")
             raise RuntimeError(f"Extraction failed: {str(retry_error)}") from retry_error
+
 
 def extract_action_items(chunks: List[str]) -> List[Dict[str, Any]]:
     """
     Extracts action items from transcript chunks.
-    
+
     Args:
         chunks (list): List of text segment chunks.
 
@@ -98,6 +129,7 @@ def extract_action_items(chunks: List[str]) -> List[Dict[str, Any]]:
 
     return all_items
 
+
 def extract_decisions(chunks: List[str]) -> List[Dict[str, Any]]:
     """
     Extracts key decisions made from transcript chunks.
@@ -136,6 +168,7 @@ def extract_decisions(chunks: List[str]) -> List[Dict[str, Any]]:
             })
 
     return all_items
+
 
 def extract_risks(chunks: List[str]) -> List[Dict[str, Any]]:
     """
@@ -177,6 +210,7 @@ def extract_risks(chunks: List[str]) -> List[Dict[str, Any]]:
             })
 
     return all_items
+
 
 def extract_deadlines(chunks: List[str], meeting_date: str = None) -> List[Dict[str, Any]]:
     """

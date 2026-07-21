@@ -2,7 +2,7 @@ import json
 import os
 import logging
 from typing import List, Dict, Any
-from backend.llm_client import call_llm
+from llm_client import call_llm
 
 logger = logging.getLogger("summary_generator")
 

@@ -1,4 +1,5 @@
 import logging
+import time
 import os
 import uuid
 import json
@@ -126,15 +127,25 @@ async def process_transcript(file_id: str, db: Session = Depends(get_db)):
         
     logger.info(f"Processing {len(chunks)} chunks for file_id {file_id}")
     
-    # LLM processing
+   # LLM processing — small delay between calls to avoid bursting Gemini's rate limit
+    LLM_CALL_SPACING_SECONDS = 3
+
     logger.info("Starting LLM map-reduce summary generation")
     summary_data = generate_summary(chunks)
+    time.sleep(LLM_CALL_SPACING_SECONDS)
+
     logger.info("Starting LLM action item extraction")
     action_items = extract_action_items(chunks)
+    time.sleep(LLM_CALL_SPACING_SECONDS)
+
     logger.info("Starting LLM decisions extraction")
     decisions = extract_decisions(chunks)
+    time.sleep(LLM_CALL_SPACING_SECONDS)
+
     logger.info("Starting LLM risks extraction")
     risks = extract_risks(chunks)
+    time.sleep(LLM_CALL_SPACING_SECONDS)
+
     logger.info("Starting LLM deadlines extraction")
     deadlines = extract_deadlines(chunks)
     

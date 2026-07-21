@@ -2,7 +2,7 @@ import os
 import shutil
 import pytest
 from fastapi.testclient import TestClient
-from backend.main import app, UPLOAD_DIR
+from main import app, UPLOAD_DIR
 
 client = TestClient(app)
 

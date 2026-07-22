@@ -6,7 +6,7 @@ import { supabase } from "./lib/supabase";
 
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
-
+const API_URL = "https://prompt-engineering-hcqt.onrender.com";
 function App() {
 
   const [session, setSession] = useState(null);
@@ -110,11 +110,11 @@ function UploadView({ onMeetingProcessed }) {
       const formData = new FormData();
       formData.append('file', file);
       
-      const uploadRes = await axios.post('/api/upload/transcript', formData);
+      const uploadRes = await axios.post('${API_URL}/api/upload/transcript', formData);
       const fileId = uploadRes.data.file_id;
       
       setStatus('processing');
-      await axios.post(`/api/process/${fileId}`);
+      await axios.post(`${API_URL}/api/process/${fileId}`);
       
       setStatus('idle');
       onMeetingProcessed(fileId);
@@ -188,7 +188,7 @@ function SearchHistoryView({ onSelectMeeting }) {
     if (!query.trim()) return;
     setLoading(true);
     try {
-      const res = await axios.get(`/api/search?q=${encodeURIComponent(query)}`);
+      const res = await axios.get(`${API_URL}/api/search?q=${encodeURIComponent(query)}`);
       setResults(res.data);
       setSearched(true);
     } catch (err) {
@@ -244,7 +244,7 @@ function MeetingDetailView({ meetingId, onBack }) {
   const [error, setError] = useState(null);
 
   React.useEffect(() => {
-    axios.get(`/api/meetings/${meetingId}`)
+    axios.get(`${API_URL}/api/meetings/${meetingId}`)
       .then(res => setData(res.data))
       .catch(err => setError('Could not load meeting details.'));
   }, [meetingId]);
@@ -253,7 +253,7 @@ function MeetingDetailView({ meetingId, onBack }) {
   if (!data) return <div className="spinner" style={{marginTop: '2rem'}}></div>;
 
   const handleExport = (format) => {
-    window.open(`/api/meetings/${meetingId}/export?format=${format}`, '_blank');
+    window.open(`${API_URL}/api/meetings/${meetingId}/export?format=${format}`, '_blank');
   };
 
   return (

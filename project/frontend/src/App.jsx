@@ -4,8 +4,8 @@ import './index.css';
 import { useEffect } from "react";
 import { supabase } from "./lib/supabase";
 
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
+import Login from "./Pages/Login";
+import Signup from "./Pages/Signup";
 
 function App() {
 

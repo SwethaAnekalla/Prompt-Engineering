@@ -1,0 +1,170 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Segoe UI,sans-serif;
+    background:#0f172a;
+}
+
+.signup-page{
+    min-height:100vh;
+    background:linear-gradient(135deg,#0f172a,#111827,#1e293b);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.overlay{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+}
+
+.brand{
+    text-align:center;
+    margin-bottom:35px;
+}
+
+.logo{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    background:#2563eb;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:34px;
+    font-weight:bold;
+    color:white;
+    margin:auto;
+    margin-bottom:15px;
+    box-shadow:0 0 25px rgba(37,99,235,.5);
+}
+
+.brand h1{
+    color:white;
+    font-size:42px;
+}
+
+.brand p{
+    color:#94a3b8;
+    margin-top:8px;
+}
+
+.signup-card{
+    width:430px;
+    padding:40px;
+    background:rgba(255,255,255,.08);
+    backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,.15);
+    border-radius:20px;
+}
+
+.signup-card h2{
+    color:white;
+    margin-bottom:8px;
+}
+
+.signup-card p{
+    color:#94a3b8;
+    margin-bottom:25px;
+}
+
+.signup-card label{
+    display:block;
+    color:white;
+    margin-top:16px;
+    margin-bottom:8px;
+}
+
+.signup-card input{
+    width:100%;
+    padding:14px;
+    border:none;
+    outline:none;
+    border-radius:12px;
+    background:#1e293b;
+    color:white;
+    font-size:15px;
+}
+
+.password-box{
+    position:relative;
+}
+
+.eye{
+    position:absolute;
+    right:18px;
+    top:14px;
+    cursor:pointer;
+    user-select:none;
+}
+
+.signup-card button{
+    width:100%;
+    padding:15px;
+    margin-top:30px;
+    border:none;
+    border-radius:12px;
+    background:#2563eb;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.signup-card button:hover{
+    background:#1d4ed8;
+    transform:translateY(-2px);
+}
+
+.bottom-text{
+    margin-top:25px;
+    text-align:center;
+    color:#cbd5e1;
+}
+
+.bottom-text a{
+    color:#60a5fa;
+    text-decoration:none;
+    font-weight:bold;
+}
+
+.bottom-text a:hover{
+    text-decoration:underline;
+}
+
+@media(max-width:500px){
+
+.signup-card{
+    width:90%;
+    padding:30px;
+}
+
+.brand h1{
+    font-size:34px;
+}
+
+.logo{
+    width:60px;
+    height:60px;
+}
+
+}
+.switch-link{
+    color:#60a5fa;
+    margin-left:6px;
+    cursor:pointer;
+    font-weight:600;
+    transition:.3s;
+}
+
+.switch-link:hover{
+    color:white;
+    text-decoration:underline;
+}

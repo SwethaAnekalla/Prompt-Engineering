@@ -1,19 +1,59 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './index.css';
+import { useEffect } from "react";
+import { supabase } from "./lib/supabase";
+
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 
 function App() {
+
+  const [session, setSession] = useState(null);
+  const [authView, setAuthView] = useState("login");
+
+  
   const [currentView, setCurrentView] = useState('upload'); // upload, search, detail
   const [selectedMeetingId, setSelectedMeetingId] = useState(null);
+useEffect(() => {
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    setSession(session);
+  });
 
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setSession(session);
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
   const navigateTo = (view, id = null) => {
     setCurrentView(view);
     if (id) setSelectedMeetingId(id);
   };
 
+ if (!session) {
+    return authView === "login" ? (
+      <Login onSignup={() => setAuthView("signup")} />
+    ) : (
+      <Signup onLogin={() => setAuthView("login")} />
+    );
+  }
   return (
     <>
       <nav className="sidebar">
+        <div style={{ marginTop: "auto", padding: "20px" }}>
+  <button
+    className="btn"
+    style={{ width: "100%" }}
+    onClick={async () => {
+      await supabase.auth.signOut();
+    }}
+  >
+    Logout
+  </button>
+</div>
         <div className="logo">
           <div className="logo-icon">M</div>
           <h2>MinutesAI</h2>

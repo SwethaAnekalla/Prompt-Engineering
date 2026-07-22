@@ -28,10 +28,9 @@ body {
 }
 
 #root {
-    display: flex;
+    width: 100%;
     min-height: 100vh;
 }
-
 /* Sidebar */
 .sidebar {
     width: 260px;
@@ -365,7 +364,12 @@ header p {
     margin-top: 1rem;
     border: 1px solid rgba(239, 68, 68, 0.2);
 }
-
+/* Dashboard Layout */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-color); }

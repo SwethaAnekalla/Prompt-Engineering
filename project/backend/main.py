@@ -10,8 +10,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
-
 load_dotenv()
+
 
 # Import our modules
 from database.connection import get_db, engine, Base

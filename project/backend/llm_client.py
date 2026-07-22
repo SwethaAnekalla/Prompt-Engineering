@@ -1,96 +1,137 @@
+
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 import time
 import random
 import logging
-import httpx
+import json
+from google import genai
 
 logger = logging.getLogger("llm_client")
 
 def call_llm(prompt: str, system: str = None) -> str:
     """
-    Call the Gemini API with the provided prompt and optional system instructions.
-    Retries with exponential backoff + jitter on transient failures
-    (429 or 5xx status codes, or connection/timeout errors).
+    Call the Gemini API using the new google-genai SDK.
+    Retries with exponential backoff + jitter on transient failures.
+    
+    If DEMO_MODE=true in .env, returns mock JSON data instead of calling the API.
 
     Args:
         prompt (str): The user prompt.
         system (str, optional): The system prompt defining assistant behavior.
 
     Returns:
-        str: Raw JSON string returned by the LLM.
+        str: Raw JSON string returned by the LLM or mock data.
     """
+    # Check for demo mode
+    demo_mode = os.getenv("DEMO_MODE", "false").lower() == "true"
+    
+    if demo_mode:
+        logger.info("DEMO MODE: Returning mock data instead of calling API")
+        # Return mock JSON data based on the prompt context
+        if "summary" in prompt.lower() or "summarize" in prompt.lower():
+            return json.dumps({
+                "summary": "This is a demo meeting summary. The team discussed project milestones, budget allocation, and upcoming deliverables. Key stakeholders provided updates on their respective areas.",
+                "key_topics": ["Project Timeline", "Budget Review", "Team Updates", "Risk Assessment"],
+                "chunk_summary": "Demo chunk discussing various project aspects and team collaboration."
+            })
+        elif "action" in prompt.lower():
+            return json.dumps({
+                "action_items": [
+                    {"task": "Complete project documentation", "owner": "John Doe", "deadline": "Next Friday", "source_chunk": 1},
+                    {"task": "Review budget proposal", "owner": "Jane Smith", "deadline": "End of week", "source_chunk": 2},
+                    {"task": "Schedule follow-up meeting", "owner": "Team Lead", "deadline": "Tomorrow", "source_chunk": 3}
+                ]
+            })
+        elif "decision" in prompt.lower():
+            return json.dumps({
+                "decisions": [
+                    {"decision": "Approved budget increase for Q2", "context": "Based on projected growth", "source_chunk": 1},
+                    {"decision": "Extended project deadline by 2 weeks", "context": "To ensure quality deliverables", "source_chunk": 2}
+                ]
+            })
+        elif "risk" in prompt.lower():
+            return json.dumps({
+                "risks": [
+                    {"risk": "Potential resource shortage", "severity": "Medium", "source_chunk": 1},
+                    {"risk": "Timeline constraints for Phase 2", "severity": "High", "source_chunk": 2}
+                ]
+            })
+        elif "deadline" in prompt.lower():
+            return json.dumps({
+                "deadlines": [
+                    {"deadline_text": "Project completion by March 31", "normalized_date": "2026-03-31", "related_task": "Final deliverables"},
+                    {"deadline_text": "Review meeting next Friday", "normalized_date": "2026-07-25", "related_task": "Budget review"}
+                ]
+            })
+        else:
+            return json.dumps({"result": "Demo data", "status": "success"})
+    
+    # Get API key and model from environment
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable is not set")
 
-    model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-
-    headers = {
-        "Content-Type": "application/json",
-        "x-goog-api-key": api_key   # <-- auth keys go in the header, not the URL
-    }
-
-    payload = {
-        "contents": [
-            {"role": "user", "parts": [{"text": prompt}]}
-        ],
-        "generationConfig": {
-            "temperature": 0.1,
-            "responseMimeType": "application/json"
-        }
-    }
-
-    if system:
-        payload["systemInstruction"] = {"parts": [{"text": system}]}
-
-    max_attempts = 5          # was 2 -> more room to ride out rate limits
-    base_delay = 2.0          # seconds, doubles each retry
-    max_delay = 30.0          # cap on backoff wait
-    timeout_seconds = 120.0   # was 60 -> Gemini can be slow under load
-
+    model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    
+    max_attempts = 5
+    base_delay = 2.0
+    max_delay = 30.0
     last_exception = None
 
     for attempt in range(1, max_attempts + 1):
         try:
-            logger.info(f"Calling LLM API ({model}) - Attempt {attempt}/{max_attempts}")
-            response = httpx.post(api_url, json=payload, headers=headers, timeout=timeout_seconds)
-
-            if response.status_code in [429, 500, 502, 503, 504]:
+            logger.info(f"Calling Gemini API ({model_name}) using google-genai SDK - Attempt {attempt}/{max_attempts}")
+            
+            # Initialize the client
+            client = genai.Client(api_key=api_key)
+            
+            # Build the prompt with system instruction if provided
+            full_prompt = prompt
+            if system:
+                full_prompt = f"{system}\n\n{prompt}"
+            
+            # Configure generation to return JSON
+            config = {
+                "temperature": 0.1,
+                "response_mime_type": "application/json"
+            }
+            
+            # Generate content
+            response = client.models.generate_content(
+                model=model_name,
+                contents=full_prompt,
+                config=config
+            )
+            
+            logger.info(f"API call successful")
+            return response.text.strip()
+            
+        except Exception as e:
+            error_msg = str(e)
+            logger.warning(f"Error on attempt {attempt}: {error_msg}")
+            last_exception = e
+            
+            # Check if it's a retryable error (rate limit, server error, etc.)
+            if "429" in error_msg or "500" in error_msg or "503" in error_msg or "timeout" in error_msg.lower():
                 if attempt < max_attempts:
-                    # Respect Retry-After header if Gemini sends one, else exponential backoff + jitter
-                    retry_after = response.headers.get("Retry-After")
-                    if retry_after:
-                        wait = float(retry_after)
-                    else:
-                        wait = min(base_delay * (2 ** (attempt - 1)), max_delay)
-                        wait += random.uniform(0, 1)  # jitter avoids retry storms
-
-                    logger.warning(
-                        f"Transient HTTP error {response.status_code} received. "
-                        f"Body: {response.text[:500]} "
-                        f"Retrying in {wait:.1f} seconds..."
-                    )
+                    wait = min(base_delay * (2 ** (attempt - 1)), max_delay)
+                    wait += random.uniform(0, 1)
+                    logger.warning(f"Retrying in {wait:.1f} seconds...")
                     time.sleep(wait)
                     continue
-                else:
-                    logger.error(f"Final failure body: {response.text[:1000]}")
-                    response.raise_for_status()
-
-            response.raise_for_status()
-
-            result = response.json()
-            return result["candidates"][0]["content"]["parts"][0]["text"].strip()
-
-        except (httpx.RequestError, httpx.HTTPStatusError) as e:
-            logger.warning(f"Network or HTTP error on attempt {attempt}: {str(e)}")
-            last_exception = e
-            if attempt < max_attempts:
+            
+            # For non-retryable errors or last attempt, raise immediately
+            if attempt >= max_attempts:
+                raise RuntimeError(f"API failure after {max_attempts} attempts: {error_msg}") from e
+            else:
+                # For other errors, still retry but with shorter delay
                 wait = min(base_delay * (2 ** (attempt - 1)), max_delay)
                 wait += random.uniform(0, 1)
+                logger.warning(f"Retrying in {wait:.1f} seconds...")
                 time.sleep(wait)
                 continue
-            else:
-                raise RuntimeError(f"API failure: {str(e)}") from e
 
     raise RuntimeError(f"API failure after {max_attempts} attempts: {str(last_exception)}") from last_exception

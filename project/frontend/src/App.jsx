@@ -41,19 +41,8 @@ useEffect(() => {
     );
   }
   return (
-    <>
+    <div className="app-container">
       <nav className="sidebar">
-        <div style={{ marginTop: "auto", padding: "20px" }}>
-  <button
-    className="btn"
-    style={{ width: "100%" }}
-    onClick={async () => {
-      await supabase.auth.signOut();
-    }}
-  >
-    Logout
-  </button>
-</div>
         <div className="logo">
           <div className="logo-icon">M</div>
           <h2>MinutesAI</h2>
@@ -76,6 +65,17 @@ useEffect(() => {
             </a>
           </li>
         </ul>
+        <div style={{ marginTop: "auto", padding: "20px 0" }}>
+          <button
+            className="btn"
+            style={{ width: "100%" }}
+            onClick={async () => {
+              await supabase.auth.signOut();
+            }}
+          >
+            Logout
+          </button>
+        </div>
       </nav>
 
       <main className="content">
@@ -88,7 +88,7 @@ useEffect(() => {
           />
         )}
       </main>
-    </>
+    </div>
   );
 }
 

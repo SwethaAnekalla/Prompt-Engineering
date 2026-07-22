@@ -1,4 +1,3 @@
-
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -15,7 +14,8 @@ def call_llm(prompt: str, system: str = None) -> str:
     """
     Call the Gemini API using the new google-genai SDK.
     Retries with exponential backoff + jitter on transient failures.
-    
+    Falls back to a secondary model after repeated failures on the primary.
+
     If DEMO_MODE=true in .env, returns mock JSON data instead of calling the API.
 
     Args:
@@ -27,10 +27,9 @@ def call_llm(prompt: str, system: str = None) -> str:
     """
     # Check for demo mode
     demo_mode = os.getenv("DEMO_MODE", "false").lower() == "true"
-    
+
     if demo_mode:
         logger.info("DEMO MODE: Returning mock data instead of calling API")
-        # Return mock JSON data based on the prompt context
         if "summary" in prompt.lower() or "summarize" in prompt.lower():
             return json.dumps({
                 "summary": "This is a demo meeting summary. The team discussed project milestones, budget allocation, and upcoming deliverables. Key stakeholders provided updates on their respective areas.",
@@ -68,66 +67,52 @@ def call_llm(prompt: str, system: str = None) -> str:
             })
         else:
             return json.dumps({"result": "Demo data", "status": "success"})
-    
-    # Get API key and model from environment
+
+    # Get API key and models from environment
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable is not set")
 
-    model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-    
+    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+    fallback_model = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite")
+
     max_attempts = 5
     base_delay = 2.0
     max_delay = 30.0
     last_exception = None
 
     for attempt in range(1, max_attempts + 1):
+        # Use the primary model for the first 3 attempts, then switch to fallback
+        current_model = model_name if attempt <= 3 else fallback_model
         try:
-            logger.info(f"Calling Gemini API ({model_name}) using google-genai SDK - Attempt {attempt}/{max_attempts}")
-            
-            # Initialize the client
+            logger.info(f"Calling Gemini API ({current_model}) using google-genai SDK - Attempt {attempt}/{max_attempts}")
+
             client = genai.Client(api_key=api_key)
-            
-            # Build the prompt with system instruction if provided
+
             full_prompt = prompt
             if system:
                 full_prompt = f"{system}\n\n{prompt}"
-            
-            # Configure generation to return JSON
+
             config = {
                 "temperature": 0.1,
                 "response_mime_type": "application/json"
             }
-            
-            # Generate content
+
             response = client.models.generate_content(
-                model=model_name,
+                model=current_model,
                 contents=full_prompt,
                 config=config
             )
-            
-            logger.info(f"API call successful")
+
+            logger.info("API call successful")
             return response.text.strip()
-            
+
         except Exception as e:
             error_msg = str(e)
-            logger.warning(f"Error on attempt {attempt}: {error_msg}")
+            logger.warning(f"Error on attempt {attempt} ({current_model}): {error_msg}")
             last_exception = e
-            
-            # Check if it's a retryable error (rate limit, server error, etc.)
-            if "429" in error_msg or "500" in error_msg or "503" in error_msg or "timeout" in error_msg.lower():
-                if attempt < max_attempts:
-                    wait = min(base_delay * (2 ** (attempt - 1)), max_delay)
-                    wait += random.uniform(0, 1)
-                    logger.warning(f"Retrying in {wait:.1f} seconds...")
-                    time.sleep(wait)
-                    continue
-            
-            # For non-retryable errors or last attempt, raise immediately
-            if attempt >= max_attempts:
-                raise RuntimeError(f"API failure after {max_attempts} attempts: {error_msg}") from e
-            else:
-                # For other errors, still retry but with shorter delay
+
+            if attempt < max_attempts:
                 wait = min(base_delay * (2 ** (attempt - 1)), max_delay)
                 wait += random.uniform(0, 1)
                 logger.warning(f"Retrying in {wait:.1f} seconds...")

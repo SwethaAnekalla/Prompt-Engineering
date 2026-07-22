@@ -110,7 +110,7 @@ function UploadView({ onMeetingProcessed }) {
       const formData = new FormData();
       formData.append('file', file);
       
-      const uploadRes = await axios.post('${API_URL}/api/upload/transcript', formData);
+      const uploadRes = await axios.post(`${API_URL}/api/upload/transcript`, formData);
       const fileId = uploadRes.data.file_id;
       
       setStatus('processing');

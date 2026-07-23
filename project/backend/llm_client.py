@@ -76,9 +76,9 @@ def call_llm(prompt: str, system: str = None) -> str:
     model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
     fallback_model = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite")
 
-    max_attempts = 5
-    base_delay = 2.0
-    max_delay = 30.0
+    max_attempts = 3
+    base_delay = 1.0
+    max_delay = 8.0
     last_exception = None
 
     for attempt in range(1, max_attempts + 1):
